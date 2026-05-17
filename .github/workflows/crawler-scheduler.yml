@@ -1,53 +1,81 @@
-# This is a basic workflow to help you get started with Actions
+name: Show Crawler
 
-name: crawler-scheduler
-
-# Controls when the workflow will run
 on:
-  workflow_dispatch: # 手動觸發
-  schedule: # 自動排程
-    - cron: '*/30 * * * *' # 每30分鐘跑一次
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+permissions:
+  contents: write
+
 jobs:
-  # This workflow contains a single job called "build"
-  check:
-    # The type of runner that the job will run on
+  check-api:
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: Step1-Checkout
+      - name: Step1-Checkout Repository
         uses: actions/checkout@v4
-        with:
-          persist-credentials: true
 
-      - name: Step2-.NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '7.0.x'
-          
-      - name: Step3-Build
-        working-directory: src/CheckAndNotify
-        run: dotnet build --configuration Release
+      - name: Step2-Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Step4-Run check
-        working-directory: src/CheckAndNotify
-        env:
-          API_URL: ${{ secrets.API_URL }}
-          TG_TOKEN: ${{ secrets.TG_TOKEN }}
-          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        run: dotnet run --configuration Release --no-build
-
-      - name: Step5-Commit state if changed
+      - name: Step3-Call API
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # copy state file from project folder to repo root for commit
-          if [ -f src/CheckAndNotify/last_state.json ]; then
-            mv src/CheckAndNotify/last_state.json last_state.json || true
+          curl -s "https://csm.api.opentix.life/programs/2051591825313611777" \
+          -o response.json
+
+      - name: Step4-Extract Specific Content
+        run: |
+          curl "https://csm.api.opentix.life/programs/2051591825313611777" | 
+          jq ".result.eventVenues[] | select(.id == \"2051593347817213953\").events[] | 
+          select(.id | IN(\"2052682612679090177\",\"2052683047905329153\",\"2052682637388972033\",\"2052683057301188609\",\"2052683065424936961\",\"2052682652327120897\",\"2052683073990541313\")) |
+          {showTime:((.startDateTime + 28800) | strftime(\"%Y-%m-%d %H:%M:%S\")) , quantity:.quantity.remainingQuantity, 
+          sections:[.groupSections.default[] | select(.name | tostring | [contains(\"視線受限\"),contains(\"友善\"),contains(\"輪椅\")] | any | not) | {name:.name,quantity:.quantity.remainingQuantity}] }" 
+          response.json > new.json
+
+      - name: Step5-Compare JSON
+        id: compare
+        run: |
+          if diff -q data/latest.json new.json > /dev/null; then
+            echo "same=true" >> $GITHUB_OUTPUT
+          else
+            echo "same=false" >> $GITHUB_OUTPUT
           fi
-          if [ -n "$(git status --porcelain)" ]; then
-            git add last_state.json
-            git commit -m "Update state: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+      - name: Step6-Update Stored JSON
+        if: steps.compare.outputs.same == 'false'
+        run: |
+          cp new.json data/latest.json
+
+      - name: Step7-Commit Changes
+        if: steps.compare.outputs.same == 'false'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add data/latest.json
+
+          git commit -m "Update API data"
+
+          git push
+
+      - name: Step8-Send Mail Notification
+        if: steps.compare.outputs.same == 'false'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+
+          subject: API Data Changed
+          to: yourmail@example.com
+          from: GitHub Actions
+
+          body: |
+            API內容已變更
+
+            最新內容：
+
+            ${{ steps.compare.outputs.same }}
