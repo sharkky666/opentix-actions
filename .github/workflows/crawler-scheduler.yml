@@ -1,0 +1,53 @@
+# This is a basic workflow to help you get started with Actions
+
+name: crawler-scheduler
+
+# Controls when the workflow will run
+on:
+  workflow_dispatch: # 手動觸發
+  schedule: # 自動排程
+    - cron: '*/30 * * * *' # 每30分鐘跑一次
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  check:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Step1-Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Step2-.NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '7.0.x'
+          
+      - name: Step3-Build
+        working-directory: src/CheckAndNotify
+        run: dotnet build --configuration Release
+
+      - name: Step4-Run check
+        working-directory: src/CheckAndNotify
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+        run: dotnet run --configuration Release --no-build
+
+      - name: Step5-Commit state if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # copy state file from project folder to repo root for commit
+          if [ -f src/CheckAndNotify/last_state.json ]; then
+            mv src/CheckAndNotify/last_state.json last_state.json || true
+          fi
+          if [ -n "$(git status --porcelain)" ]; then
+            git add last_state.json
+            git commit -m "Update state: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
