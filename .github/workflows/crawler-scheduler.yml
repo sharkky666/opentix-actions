@@ -42,7 +42,11 @@ jobs:
         id: compare
         run: |
           if [ -f data/latest.json ]; then
-            if diff -q data/latest.json new.json > /dev/null; then
+            # 核心改動：利用 jq 排除外層 quantity 欄位，只取出 showTime 與 sections 進行精準比對
+            jq -c '{showTime, sections}' data/latest.json > old_only_sections.json
+            jq -c '{showTime, sections}' new.json > new_only_sections.json
+            
+            if diff -q old_only_sections.json new_only_sections.json > /dev/null; then
               echo "same=true" >> $GITHUB_OUTPUT
             else
               echo "same=false" >> $GITHUB_OUTPUT
@@ -59,7 +63,8 @@ jobs:
           echo "diff_content<<EOF">> $GITHUB_OUTPUT
           if [ -f data/latest.json ]; then
             # 使用 diff -u 比較新舊檔案的差異
-            diff -u data/latest.json new.json || true
+            # 關鍵改動：加上 -U 12，擴大上下上下文範圍，確保秀出場次時間與完整區域
+            diff -u -U 12 data/latest.json new.json || true
           else
             echo "這是第一次執行，以下為初始抓取的資料："
             cat new.json
@@ -109,3 +114,4 @@ jobs:
             ```diff
             ${{ steps.get_diff.outputs.diff_content }}
             ```
+            
