@@ -65,7 +65,15 @@ jobs:
 
           git push
 
-      - name: Step8-Send Mail Notification
+      - name: Step8-Read JSON Content
+        id: read_json
+        if: steps.compare.outputs.same == 'false'
+        run: |
+          echo "json_content<<EOF" >> $GITHUB_OUTPUT
+          cat data/latest.json >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Step9-Send Mail Notification
         if: steps.compare.outputs.same == 'false'
         uses: dawidd6/action-send-mail@v3
         with:
@@ -86,3 +94,6 @@ jobs:
             最新內容：
 
             ${{ steps.compare.outputs.same }}
+            ```json
+            ${{ steps.read_json.outputs.json_content }}
+            ```
