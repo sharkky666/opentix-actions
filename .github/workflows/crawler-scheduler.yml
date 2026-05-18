@@ -26,11 +26,17 @@ jobs:
 
       - name: Step4-Extract Specific Content
         run: |
-          jq ".result.eventVenues[] | select(.id == \"2051593347817213953\").events[] | 
-          select(.id | IN(\"2052682612679090177\",\"2052683047905329153\",\"2052682637388972033\",\"2052683057301188609\",\"2052683065424936961\",\"2052682652327120897\",\"2052683073990541313\")) |
-          {showTime:((.startDateTime + 28800) | strftime(\"%Y-%m-%d %H:%M:%S\")) , quantity:.quantity.remainingQuantity, 
-          sections:[.groupSections.default[] | select(.name | tostring | [contains(\"視線受限\"),contains(\"友善\"),contains(\"輪椅\")] | any | not) | {name:.name,quantity:.quantity.remainingQuantity}] }" 
-          response.json > new.json
+          jq '.result.eventVenues[] | select(.id == "2051593347817213953").events[] | 
+          select(.id | IN("2052682612679090177","2052683047905329153","2052682637388972033","2052683057301188609","2052683065424936961","2052682652327120897","2052683073990541313")) |
+          {
+            showTime: ((.startDateTime + 28800) | strftime("%Y-%m-%d %H:%M:%S")), 
+            quantity: .quantity.remainingQuantity, 
+            sections: [
+              .groupSections.default[] | 
+              select(.name | tostring | [contains("視線受限"), contains("友善"), contains("輪椅")] | any | not) | 
+              {name: .name, quantity: .quantity.remainingQuantity}
+            ]
+          }' response.json > new.json
 
       - name: Step5-Compare JSON
         id: compare
@@ -44,6 +50,7 @@ jobs:
       - name: Step6-Update Stored JSON
         if: steps.compare.outputs.same == 'false'
         run: |
+          mkdir -p data
           cp -f new.json data/latest.json
 
       - name: Step7-Commit Changes
