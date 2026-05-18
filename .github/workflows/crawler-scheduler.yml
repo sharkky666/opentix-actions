@@ -41,19 +41,38 @@ jobs:
       - name: Step5-Compare JSON
         id: compare
         run: |
-          if diff -q data/latest.json new.json > /dev/null; then
-            echo "same=true" >> $GITHUB_OUTPUT
+          if [ -f data/latest.json ]; then
+            if diff -q data/latest.json new.json > /dev/null; then
+              echo "same=true" >> $GITHUB_OUTPUT
+            else
+              echo "same=false" >> $GITHUB_OUTPUT
+            fi
           else
+            # 如果是第一次執行，完全沒有舊檔案，直接判定為不同
             echo "same=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Step6-Update Stored JSON
+      - name: Step6-Capture Differences
+        id: get_diff
+        if: steps.compare.outputs.same == 'false'
+        run: |
+          echo "diff_content<<EOF">> $GITHUB_OUTPUT
+          if [ -f data/latest.json ]; then
+            # 使用 diff -u 比較新舊檔案的差異
+            diff -u data/latest.json new.json || true
+          else
+            echo "這是第一次執行，以下為初始抓取的資料："
+            cat new.json
+          fi >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Step7-Update Stored JSON
         if: steps.compare.outputs.same == 'false'
         run: |
           mkdir -p data
           cp -f new.json data/latest.json
 
-      - name: Step7-Commit Changes
+      - name: Step8-Commit Changes
         if: steps.compare.outputs.same == 'false'
         run: |
           git config user.name "github-actions"
@@ -64,14 +83,6 @@ jobs:
           git commit -m "Update API data"
 
           git push
-
-      - name: Step8-Read JSON Content
-        id: read_json
-        if: steps.compare.outputs.same == 'false'
-        run: |
-          echo "json_content<<EOF" >> $GITHUB_OUTPUT
-          cat data/latest.json >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Step9-Send Mail Notification
         if: steps.compare.outputs.same == 'false'
@@ -94,6 +105,7 @@ jobs:
             最新內容：
 
             ${{ steps.compare.outputs.same }}
-            ```json
-            ${{ steps.read_json.outputs.json_content }}
+            變更細節（- 代表減少/賣出，+ 代表增加/釋票）：
+            ```diff
+            ${{ steps.get_diff.outputs.diff_content }}
             ```
