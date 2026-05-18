@@ -3,6 +3,7 @@ name: Show Crawler
 on:
   schedule:
     - cron: '*/30 * * * *'
+    # min(0-59) hour(0-23) day(1-31) month(1-12/JAN-DEC) week(0-7, 0&7 = sun)
   workflow_dispatch:
 
 permissions:
@@ -25,7 +26,6 @@ jobs:
 
       - name: Step4-Extract Specific Content
         run: |
-          curl "https://csm.api.opentix.life/programs/2051591825313611777" | 
           jq ".result.eventVenues[] | select(.id == \"2051593347817213953\").events[] | 
           select(.id | IN(\"2052682612679090177\",\"2052683047905329153\",\"2052682637388972033\",\"2052683057301188609\",\"2052683065424936961\",\"2052682652327120897\",\"2052683073990541313\")) |
           {showTime:((.startDateTime + 28800) | strftime(\"%Y-%m-%d %H:%M:%S\")) , quantity:.quantity.remainingQuantity, 
@@ -44,7 +44,7 @@ jobs:
       - name: Step6-Update Stored JSON
         if: steps.compare.outputs.same == 'false'
         run: |
-          cp new.json data/latest.json
+          cp -f new.json data/latest.json
 
       - name: Step7-Commit Changes
         if: steps.compare.outputs.same == 'false'
@@ -69,12 +69,12 @@ jobs:
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
 
-          subject: API Data Changed
-          to: yourmail@example.com
+          subject: Optentix Data Changed
+          to: sharkky865180@gmail.com, kaworuattie@gmail.com
           from: GitHub Actions
 
           body: |
-            API內容已變更
+            Optentix內容已變更
 
             最新內容：
 
