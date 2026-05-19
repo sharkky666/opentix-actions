@@ -1,8 +1,8 @@
 name: Show Crawler
 
 on:
-  schedule:
-    - cron: '*/30 * * * *'
+  #schedule:
+    #- cron: '*/30 * * * *'
     # min(0-59) hour(0-23) day(1-31) month(1-12/JAN-DEC) week(0-7, 0&7 = sun)
   workflow_dispatch:
 
@@ -27,7 +27,7 @@ jobs:
       - name: Step4-Extract Specific Content
         run: |
           jq '.result.eventVenues[] | select(.id == "2051593347817213953").events[] | 
-          select(.id | IN("2052682612679090177","2052683047905329153","2052682637388972033","2052683057301188609","2052683065424936961","2052682652327120897","2052683073990541313")) |
+          select(.id | IN("2052682612679090177","2052683047905329153","2052682637388972033","2052683057301188609","2052683065424936961","2052682652327120897","2052683073990541313","2055211724284375041","2055235348896714752")) |
           {
             showTime: ((.startDateTime + 28800) | strftime("%Y-%m-%d %H:%M:%S")), 
             quantity: .quantity.remainingQuantity, 
