@@ -27,27 +27,32 @@ jobs:
 
       - name: Step4-Extract Specific Content
         run: |
+          # 下面的「過濾座位區」邏輯整塊提到前面，用括號包起來，並把它存成一個叫做 $filtered_sections 的臨時陣列變數
           jq '.result.eventVenues[] | select(.id == "2051593347817213953").events[] | 
           select(.id | IN("2052682612679090177","2052683047905329153","2052682637388972033","2052683057301188609","2052683065424936961","2052682652327120897","2052683073990541313","2055211724284375041","2055235348896714752")) |
-          {
-            showTime: ((.startDateTime + 28800) | strftime("%Y-%m-%d %H:%M:%S")), 
-            quantity: .quantity.remainingQuantity, 
-            sections: [
+          (
+            [
               .groupSections.default[] | 
               select(.name | tostring | [contains("視線受限"), contains("友善"), contains("輪椅")] | any | not) | 
               {name: .name, quantity: .quantity.remainingQuantity}
             ]
+          ) as $filtered_sections |
+          {
+            showTime: ((.startDateTime + 28800) | strftime("%Y-%m-%d %H:%M:%S")), 
+            quantity: ($filtered_sections | map(.quantity) | add // 0), 
+            sections: $filtered_sections
           }' response.json > new.json
 
       - name: Step5-Compare JSON
         id: compare
         run: |
           if [ -f data/latest.json ]; then
-            # 核心改動：利用 jq 排除外層 quantity 欄位，只取出 showTime 與 sections 進行精準比對
-            jq -c '{showTime, sections}' data/latest.json > old_only_sections.json
-            jq -c '{showTime, sections}' new.json > new_only_sections.json
+            # Step4 已改動計算模式(外層的 quantity 已為「一般座位」總和)
+            # jq -c '{showTime, sections}' data/latest.json > old_only_sections.json
+            # jq -c '{showTime, sections}' new.json > new_only_sections.json
+            # if diff -q old_only_sections.json new_only_sections.json > /dev/null; then
             
-            if diff -q old_only_sections.json new_only_sections.json > /dev/null; then
+            if diff -q data/latest.json new.json > /dev/null; then
               echo "same=true" >> $GITHUB_OUTPUT
             else
               echo "same=false" >> $GITHUB_OUTPUT
@@ -65,7 +70,7 @@ jobs:
           if [ -f data/latest.json ]; then
             # 使用 diff -u 比較新舊檔案的差異
             # 關鍵改動：加上 -U 12，擴大上下上下文範圍，確保秀出場次時間與完整區域
-            diff -u -U 12 data/latest.json new.json || true
+            diff -u -U 30 data/latest.json new.json || true
           else
             echo "這是第一次執行，以下為初始抓取的資料："
             cat new.json
@@ -103,14 +108,10 @@ jobs:
 
           subject: Optentix Data Changed
           to: sharkky865180@gmail.com, kaworuattie@gmail.com
-          from: GitHub Actions
+          from: GitHub Actions-Optentix內容已變更
 
           body: |
-            Optentix內容已變更
-
-            最新內容：
-
-            ${{ steps.compare.outputs.same }}
+            ${{ steps.compare.outputs.same == 'false' && '有新' || '無' }} 變更
             變更細節（- 代表減少/賣出，+ 代表增加/釋票）：
             ```diff
             ${{ steps.get_diff.outputs.diff_content }}
