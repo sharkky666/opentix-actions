@@ -10,7 +10,8 @@ permissions:
   contents: write
 
 jobs:
-  check-api:
+  run-crawler:
+    name: 🎫 售票狀況定時監控
     runs-on: ubuntu-latest
     steps:
       - name: Step1-Checkout Repository
