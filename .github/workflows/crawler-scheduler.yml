@@ -2,9 +2,13 @@ name: Show Crawler
 
 on:
   #schedule:
-    #- cron: '*/30 * * * *'
-    # min(0-59) hour(0-23) day(1-31) month(1-12/JAN-DEC) week(0-7, 0&7 = sun)
+  #  - cron: '*/30 * * * *'
+  #  min(0-59) hour(0-23) day(1-31) month(1-12/JAN-DEC) week(0-7, 0&7 = sun)
   workflow_dispatch:
+
+# 新增全域環境變數，強制讓所有 Actions 套件改用 Node 24 執行
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
   contents: write
@@ -97,7 +101,8 @@ jobs:
 
       - name: Step9-Send Mail Notification
         if: steps.compare.outputs.same == 'false'
-        uses: dawidd6/action-send-mail@v3
+        # 將 v3 升級為 v4，官方在新版已原生支援 Node 24
+        uses: dawidd6/action-send-mail@v4
         with:
           server_address: smtp.gmail.com
           server_port: 465
