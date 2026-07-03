@@ -30,7 +30,7 @@
 }
 {
   "showTime": "2026-08-15 19:30:00",
-  "quantity": 37,
+  "quantity": 36,
   "sections": [
     {
       "name": "4200元區",
@@ -46,7 +46,7 @@
     },
     {
       "name": "2500元區",
-      "quantity": 5
+      "quantity": 4
     },
     {
       "name": "2000元區",
@@ -150,11 +150,11 @@
 }
 {
   "showTime": "2026-08-23 13:30:00",
-  "quantity": 45,
+  "quantity": 44,
   "sections": [
     {
       "name": "4200元區",
-      "quantity": 2
+      "quantity": 0
     },
     {
       "name": "3600元區",
@@ -162,7 +162,7 @@
     },
     {
       "name": "3000元區",
-      "quantity": 14
+      "quantity": 15
     },
     {
       "name": "2500元區",
@@ -240,7 +240,7 @@
 }
 {
   "showTime": "2026-08-30 13:30:00",
-  "quantity": 52,
+  "quantity": 54,
   "sections": [
     {
       "name": "4200元區",
@@ -252,7 +252,7 @@
     },
     {
       "name": "3000元區",
-      "quantity": 28
+      "quantity": 29
     },
     {
       "name": "2500元區",
@@ -264,7 +264,7 @@
     },
     {
       "name": "1500元區",
-      "quantity": 8
+      "quantity": 9
     }
   ]
 }
