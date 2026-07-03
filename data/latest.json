@@ -30,11 +30,11 @@
 }
 {
   "showTime": "2026-08-15 19:30:00",
-  "quantity": 0,
+  "quantity": 10,
   "sections": [
     {
       "name": "4200元區",
-      "quantity": 0
+      "quantity": 10
     },
     {
       "name": "3600元區",
@@ -60,11 +60,11 @@
 }
 {
   "showTime": "2026-08-16 13:30:00",
-  "quantity": 0,
+  "quantity": 15,
   "sections": [
     {
       "name": "4200元區",
-      "quantity": 0
+      "quantity": 15
     },
     {
       "name": "3600元區",
